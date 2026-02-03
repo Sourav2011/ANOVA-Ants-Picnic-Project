@@ -1,0 +1,742 @@
+---
+title: 'Comparison of K distributions : Ants on the picnic blanket'
+output:
+  pdf_document: default
+  html_document: default
+date: "2025-11-01"
+---
+
+
+```{r}
+# Load necessary libraries
+
+library(readr)
+library(dplyr)
+library(tidyr)
+library(psych)
+library(skimr)
+library(ggplot2)
+library(corrplot)
+library(ggcorrplot)
+library(plotly)
+library(naniar)
+library(VIM)
+library(ineq)
+library(ggthemes)
+library(cowplot)
+library(gridExtra)
+#library(haven)
+library(foreign)
+library(car) 
+```
+
+
+```{r}
+# 3. Read the SPSS file
+
+sandwich <- read.spss("Sandwich.sav", to.data.frame = TRUE)
+
+# 4. Export to CSV (Excel can open CSV files easily)
+write.csv(sandwich, "Sandwich.csv", row.names = FALSE)
+```
+
+
+```{r}
+sandwich <- read.csv("Sandwich.csv")
+```
+
+```{r}
+head(sandwich)
+```
+
+```{r}
+# Convert relevant variables to factors
+sandwich$Brot <- as.factor(sandwich$Brot)
+sandwich$Belag <- as.factor(sandwich$Belag)
+sandwich$Butter <- as.factor(sandwich$Butter)
+
+```
+
+
+```{r}
+str(sandwich)
+```
+
+```{r}
+head(sandwich)
+```
+
+
+
+
+# Exploration of Missing Values
+
+```{r}
+
+# Percentage of missing values by each variable
+
+missing_percent <- round(colSums(is.na(sandwich)) / nrow(sandwich) * 100, 2)
+
+data.frame(
+  #Variable = names(sandwich),
+  #Missing_Count = missing_summary,
+  Missing_Percent = missing_percent
+)
+
+
+```
+
+# Exploratory Data Analysis (EDA)
+
+```{r}
+# Number of observations per group
+
+cat("Brot types:\n")
+table(sandwich$Brot)
+cat("\n")
+cat("Belag types:\n")
+table(sandwich$Belag)
+cat("\n")
+cat("Butter presence:\n")
+table(sandwich$Butter)
+
+```
+
+## Descriptive Statistics of Brot
+
+```{r}
+# Number of ants for group "Brot"
+sandwich %>%
+  group_by(Brot) %>%
+  summarise(
+    n = n(),
+    sum = sum(Ameisen, na.rm = TRUE),
+    max = max(Ameisen, na.rm = TRUE),
+    min = min(Ameisen, na.rm = TRUE),
+    mean = mean(Ameisen),
+    sd = sd(Ameisen),
+    q1 = quantile(Ameisen, 0.25),
+    median = median(Ameisen),
+    q3 = quantile(Ameisen, 0.75),
+    IQR = IQR(Ameisen)
+  )
+```
+
+
+```{r}
+# Box Plot
+
+ggplot(sandwich, aes(x = Brot, y = Ameisen, fill = Brot)) +
+  geom_boxplot(outlier.shape = 21, outlier.size = 2) +   # regular boxplot
+  stat_summary(fun = mean, geom = "point",               # add mean as black dot
+               shape = 18, size = 3.5, fill = "red", color = "black") +
+  labs(
+    title = "Distribution of Ants across Bread Types",
+    x = "Types of Bread (Brot)",
+    y = "Number of Ants",
+    fill = "Bread(Brot) Type"
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Mehrkorn" = "steelblue",
+      "Roggen"   = "tomato",
+      "Vollkorn" = "goldenrod1",
+      "Weiß"     = "darkseagreen"
+    )
+  ) +
+  theme_minimal(base_size = 12) +  # increases base font size
+  theme(
+    legend.position = "top",              # legend on top
+    legend.title = element_text(size = 13, face = "bold"),
+    legend.text = element_text(size = 13),
+    axis.text.x = element_text(size = 10, face = "bold"),
+    axis.text.y = element_text(size = 10, face = "bold"),
+    axis.title.x = element_text(size = 12, face = "bold"),
+    axis.title.y = element_text(size = 12, face = "bold"),
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
+  )
+
+ggsave("Distribution of Ants across Bread Types.png", width = 10, height = 6, dpi = 300)
+
+
+```
+
+
+## Descriptive Statistics of Belag
+
+```{r}
+# Number of ants for group "Belag"
+
+sandwich %>%
+  group_by(Belag) %>%
+  summarise(
+    n = n(),
+    sum = sum(Ameisen, na.rm = TRUE),
+    max = max(Ameisen, na.rm = TRUE),
+    min = min(Ameisen, na.rm = TRUE),
+    mean = mean(Ameisen),
+    sd = sd(Ameisen),
+    q1 = quantile(Ameisen, 0.25),
+    median = median(Ameisen),
+    q3 = quantile(Ameisen, 0.75),
+    IQR = IQR(Ameisen)
+  )
+```
+
+```{r}
+# Box plot
+ggplot(sandwich, aes(x = Belag, y = Ameisen, fill = Belag)) +
+  geom_boxplot(outlier.shape = 21, outlier.size = 2) +  
+  stat_summary(fun = mean, geom = "point",             
+               shape = 18, size = 3.5, fill = "black",) +
+  labs(
+    title = "Distribution of Ants across Toppings",
+    x = "Toppings(Belag)",
+    y = "Number of Ants",
+    fill = "Toppings(Belag)"
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Erdnussbutter"        = "skyblue",
+      "Hefe-Brotaufstrich"   = "tomato",
+      "Schinken-Essiggurken" = "gold2"
+    )
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "top",
+    legend.title = element_text(size = 13, face = "bold"),
+    legend.text = element_text(size = 13),
+    axis.text.x = element_text(size = 10, face = "bold"),
+    axis.text.y = element_text(size = 10, face = "bold"),
+    axis.title.x = element_text(size = 12, face = "bold"),
+    axis.title.y = element_text(size = 12, face = "bold"),
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
+  )
+
+ggsave("Distribution of Ants across Toppings.png", width = 10, height = 6, dpi = 300)
+
+```
+
+## Descriptive Statistics of Butter
+
+```{r}
+# Number of ants for group "Butter"
+sandwich %>%
+  group_by(Butter) %>%
+  summarise(
+    n = n(),
+    sum = sum(Ameisen, na.rm = TRUE),
+    max = max(Ameisen, na.rm = TRUE),
+    min = min(Ameisen, na.rm = TRUE),
+    mean = mean(Ameisen),
+    sd = sd(Ameisen),
+    q1 = quantile(Ameisen, 0.25),
+    median = median(Ameisen),
+    q3 = quantile(Ameisen, 0.75),
+    IQR = IQR(Ameisen)
+  )
+```
+
+
+```{r}
+# Box plot
+ggplot(sandwich, aes(x = Butter, y = Ameisen, fill = Butter)) +
+  geom_boxplot(outlier.shape = 21, outlier.size = 2) +
+  stat_summary(fun = mean, geom = "point",
+               shape = 18, size = 3.5, fill = "black") +  
+  labs(
+    title = "Distribution of Ants in the Presence of Butter",
+    x = "Presence of Butter",
+    y = "Number of Ants",
+    fill = "Butter"
+  ) +
+  scale_fill_manual(
+    values = c(
+      "ja"   = "skyblue",
+      "nein" = "salmon"
+    )
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    legend.position = "top",
+    legend.title = element_text(size = 13, face = "bold"),
+    legend.text = element_text(size = 13),
+    axis.text.x = element_text(size = 12, face = "bold"),
+    axis.text.y = element_text(size = 12, face = "bold"),
+    axis.title.x = element_text(size = 12, face = "bold"),
+    axis.title.y = element_text(size = 12, face = "bold"),
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5)
+  )
+
+ggsave("Distribution of Ants in the Presence of Butter.png", width = 8, height = 8, dpi = 300)
+
+```
+
+# Assumption Check what to choose? Parametric test or Non-parametric test
+
+## Group-wise Normality Check
+
+```{r}
+# For "Brot"
+
+shapiro_wilk_test_brot_data <- sandwich %>%
+  group_by(Brot) %>%
+  summarise(
+    W = shapiro.test(Ameisen)$statistic,
+    p_value = shapiro.test(Ameisen)$p.value
+  )
+
+print(shapiro_wilk_test_brot_data)
+
+```
+
+
+<!-- ```{r} -->
+<!-- W-Statistic values are near to 1, indicates that the samples are nearly normally distributed. -->
+<!-- All p-values are greater than 0.05, so we fail to reject the null hypothesis. -->
+
+<!-- ``` -->
+
+
+
+```{r}
+# QQ Plot 
+
+  ggplot(sandwich, aes(sample = Ameisen)) +
+  stat_qq(size = 1) +
+  stat_qq_line(col = "red", linewidth = 0.6) +
+  facet_wrap(~ Brot, scales = "free") +
+  labs(title = "QQ Plots of Number of Ants by Bread Type",
+       x = "Theoretical Quantiles", # Ideal quantile from normal distribution
+       y = "Sample Quantiles") +    # Quantile from observed data
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
+# Save the plot
+ggsave("QQ Plots for Group Wise Normality Brot.png", width = 8, height = 6, dpi = 300)
+
+
+```
+
+
+
+```{r}
+
+# For Belag
+
+shapiro_wilk_test_belag_data <- sandwich %>%
+  group_by(Belag) %>%
+  summarise(
+    W = shapiro.test(Ameisen)$statistic,
+    p_value = shapiro.test(Ameisen)$p.value
+  )
+
+print(shapiro_wilk_test_belag_data)
+
+```
+
+
+```{r}
+ggplot(sandwich, aes(sample = Ameisen)) +
+  stat_qq(size = 1) +
+  stat_qq_line(col = "red", linewidth = 0.8) +
+  facet_wrap(~ Belag, scales = "free") +
+  labs(title = "QQ Plots of Number of Ants by Toppings(Belag)",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
+ggsave("QQ Plots for Group Wise Normality Belag.png", width = 8, height = 4, dpi = 300)
+```
+
+
+```{r}
+# For Butter
+
+shapiro_wilk_test_butter_data <- sandwich %>%
+  group_by(Butter) %>%
+  summarise(
+    W = shapiro.test(Ameisen)$statistic,
+    p_value = shapiro.test(Ameisen)$p.value
+  )
+
+print(shapiro_wilk_test_butter_data)
+
+```
+
+
+```{r}
+ggplot(sandwich, aes(sample = Ameisen)) +
+  stat_qq(size = 1) +
+  stat_qq_line(col = "red", linewidth = 0.8) +
+  facet_wrap(~ Butter, scales = "free") +
+  labs(title = "QQ Plots of Number of Ants in the Presence of Butter",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
+ggsave("QQ Plots for Group Wise Normality Butter.png", width = 8, height = 6, dpi = 300)
+```
+
+## Normality of Residuals
+
+```{r}
+# For Brot
+
+shiparo_wilk_test_residual_brot   <- aov(Ameisen ~ Brot, data = sandwich)
+shapiro.test(residuals(shiparo_wilk_test_residual_brot))
+
+```
+
+<!-- ```{r} -->
+<!-- The Shapiro–Wilk test for residuals of the Brot model (W = 0.968, p = 0.208) shows p > 0.05, indicating that the residuals are approximately normally distributed and the normality assumption is satisfied. -->
+<!-- ``` -->
+
+
+```{r}
+# QQ plot to check normality of residuals Brot
+
+residual_normality_brot <- data.frame(Residuals = residuals(shiparo_wilk_test_residual_brot))
+
+ggplot(residual_normality_brot, aes(sample = Residuals)) +
+  stat_qq(size = 1) +
+  stat_qq_line(col = "blue", linewidth = 0.8) +
+  labs(title = "QQ Plot of Residuals Brot Model",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
+
+ggsave("Residual_QQ_Brot.png", width = 8, height = 6, dpi = 300)
+
+```
+
+
+<!-- ```{r} -->
+<!-- W = 0.968, p = 0.208 > 0.05 show no significant deviation from normality. -->
+<!-- The QQ plot of residuals for the Brot model shows points closely aligned with the theoretical line, indicating that residuals are approximately normally distributed and the normality assumption is satisfied. -->
+<!-- ``` -->
+
+
+```{r}
+# For Belag
+
+shiparo_wilk_test_residual_belag  <- aov(Ameisen ~ Belag, data = sandwich)
+shapiro.test(residuals(shiparo_wilk_test_residual_belag))
+
+```
+
+
+```{r}
+# QQ plot to check normality of residuals Belag
+
+residual_normality_belag <- data.frame(Residuals = residuals(shiparo_wilk_test_residual_belag))
+
+ggplot(residual_normality_belag, aes(sample = Residuals)) +
+  stat_qq(size = 1) +
+  stat_qq_line(col = "blue", linewidth = 0.8) +
+  labs(title = "QQ Plot of Residuals Belag Model",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
+ggsave("Residual_QQ_Belag.png", width = 8, height = 6, dpi = 300)
+
+```
+
+
+```{r}
+# For Butter
+
+shiparo_wilk_test_residual_butter <- aov(Ameisen ~ Butter, data = sandwich)
+shapiro.test(residuals(shiparo_wilk_test_residual_butter))
+
+```
+
+```{r}
+# QQ plot to check normality of residuals Butter
+
+residual_normality_butter <- data.frame(Residuals = residuals(shiparo_wilk_test_residual_butter))
+
+ggplot(residual_normality_butter, aes(sample = Residuals)) +
+  stat_qq(size = 1) +
+  stat_qq_line(col = "blue", linewidth = 0.8) +
+  labs(title = "QQ Plot of Residuals Butter Model",
+       x = "Theoretical Quantiles",
+       y = "Sample Quantiles") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5))
+
+ggsave("Residual_QQ_Butter.png", width = 8, height = 6, dpi = 300)
+```
+
+# Homogeneity of Variances using Levene's Test
+
+
+<!-- ```{r} -->
+<!-- levene_brot_result <- leveneTest(Ameisen ~ Brot, data = sandwich) -->
+
+<!-- # Convert to data frame and print as table -->
+<!-- levene_brot_table <- as.data.frame(levene_brot_result) -->
+<!-- print(levene_brot_table) -->
+
+<!-- ``` -->
+
+
+## For Brot
+
+```{r}
+
+leveneTest(Ameisen ~ Brot, data = sandwich)
+
+```
+
+```{r}
+# By default, the leveneTest() in car package uses median as the center for robustness.
+```
+
+
+```{r}
+
+# Box Plot : Proves that the assumption of homogeneity in variances is met. 
+
+ggplot(sandwich, aes(x = Brot, y = Ameisen, fill = Brot)) +
+  geom_boxplot(alpha = 0.7, color = "black", width = 0.7, outlier.color = "black") +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3.5, color = "firebrick3") +
+  labs(
+    title = "Homogeneity of Variances across Bread Types",
+    subtitle = "Levene’s Test (center = median): F value(3, 44) = 0.527, p = 0.666",
+    x = "Types of Bread",
+    y = "Number of Ants"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 15),
+    plot.subtitle = element_text(hjust = 0.5, size = 12, color = "darkgreen"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(size = 11, face = "bold")
+  )
+
+ggsave("Homogeneity of Variances Brot.png", width = 8, height = 6, dpi = 300)
+
+```
+
+
+<!-- ```{r} -->
+<!-- The boxplot shows that the spread of ant counts across all bread types is relatively similar, indicating comparable variances between groups.Supports Levene’s test result (F(3,44)=0.527, p=0.666), confirming that the homogeneity of variances. -->
+<!-- ``` -->
+
+
+## For Belag
+
+```{r}
+leveneTest(Ameisen ~ Belag, data = sandwich)
+```
+
+```{r}
+
+# Box Plot : Proves that the assumption of homogeneity in variances is met. 
+
+ggplot(sandwich, aes(x = Belag, y = Ameisen, fill = Belag)) +
+  geom_boxplot(alpha = 0.7, color = "black", width = 0.7, outlier.color = "black") +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3.5, color = "firebrick3") +
+  labs(
+    title = "Homogeneity of Variances across Toppings",
+    subtitle = "Levene’s Test (center = median): F value (2, 45) = 0.635, p = 0.535",
+    x = "Toppings (Belag)",
+    y = "Number of Ants"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 15),
+    plot.subtitle = element_text(hjust = 0.5, size = 12, color = "darkgreen"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(size = 11, face = "bold")
+  )
+
+ggsave("Homogeneity of Variances Belag.png", width = 8, height = 6, dpi = 300)
+```
+
+## For Butter
+
+```{r}
+leveneTest(Ameisen ~ Butter, data = sandwich)
+```
+
+```{r}
+
+# Box Plot : Proves that the assumption of homogeneity in variances is met. 
+
+ggplot(sandwich, aes(x = Butter, y = Ameisen, fill = Butter)) +
+  geom_boxplot(alpha = 0.7, color = "black", width = 0.7, outlier.color = "black") +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3.5, color = "firebrick3") +
+  labs(
+    title = "Homogeneity of Variances by Butter ",
+    subtitle = "Levene’s Test (center = median): F value (1, 46) = 0.001, p = 0.970",
+    x = "Presence of Butter",
+    y = "Number of Ants"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 15),
+    plot.subtitle = element_text(hjust = 0.5, size = 12, color = "darkgreen"),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(size = 11, face = "bold")
+  )
+
+ggsave("Homogeneity of Variances Butter.png", width = 8, height = 6, dpi = 300)
+
+```
+
+# Task 01: ANOVA TEST (All assumptions were satisfied) 
+
+## One Way ANOVA TEST
+
+
+### Does the number of ants attracted generally differ with regard to the different types of bread?
+
+```{r}
+brot_one_way_anova <- aov(Ameisen ~ Brot, data = sandwich)
+summary(brot_one_way_anova)
+```
+
+
+### Does the number of ants attracted generally differ with regard to the different sandwich toppings?
+
+```{r}
+belag_one_way_anova <- aov(Ameisen ~ Belag, data = sandwich)
+summary(belag_one_way_anova)
+```
+
+
+### Does the number of ants attracted generally differ with regard to the presence of butter on the sandwich?
+
+```{r}
+butter_one_way_anova <- aov(Ameisen ~ Butter, data = sandwich)
+summary(butter_one_way_anova)
+```
+
+
+
+<!-- ```{r} -->
+<!-- Since Belag and Butter have significant effects on the number ants, so now we test for Tukey's Hsd test or -->
+<!-- Pairwise t-test with p.adjust() in R. -->
+<!-- ``` -->
+
+# Task 02 Multiple Test problem / Pairwise Comparison
+
+
+## For Belag
+
+```{r}
+TukeyHSD(belag_one_way_anova)
+```
+
+
+```{r}
+# Run Tukey’s HSD
+tukey_belag <- TukeyHSD(belag_one_way_anova)
+
+# Convert results to a data frame
+tukey_df <- as.data.frame(tukey_belag$Belag)
+
+# Add a 'reject' column
+tukey_df$reject <- tukey_df$`p adj` < 0.05
+
+# View result
+tukey_df
+```
+
+
+## For Butter
+
+```{r}
+TukeyHSD(butter_one_way_anova)
+```
+
+```{r}
+
+# Run Tukey’s HSD for Butter
+tukey_butter <- TukeyHSD(butter_one_way_anova)
+
+# Convert Tukey output to a data frame
+tukey_butter_df <- as.data.frame(tukey_butter$Butter)
+
+# Add a column indicating whether to reject H0 (TRUE if p < 0.05)
+tukey_butter_df$reject <- tukey_butter_df$`p adj` < 0.05
+
+# View the resulting table
+tukey_butter_df
+
+```
+
+
+##################### Two-way ANOVA Test ######################################
+
+```{r}
+# Two-Way ANOVA for Belag and Butter
+belag_butter_two_way_anova <- aov(Ameisen ~ Belag * Butter, data = sandwich)
+summary(belag_butter_two_way_anova)
+
+```
+
+
+```{r}
+ggplot(sandwich, aes(x = Belag, y = Ameisen, color = Butter, group = Butter)) +
+  stat_summary(fun = mean, geom = "line", linewidth = 1.1) +
+  stat_summary(fun = mean, geom = "point", size = 3) +
+  scale_color_manual(values = c("nein" = "darkseagreen", "ja" = "salmon1"),
+                     name = "Butter") +
+  labs(
+    title = "Interaction Plot: Topping (Belag) × Butter",
+    x = "Topping Type (Belag)",
+    y = "Mean Number of Ants"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.text = element_text(face = "bold"),
+    legend.position = "top"
+  )
+
+ggsave("Interaction Plot Topping (Belag)_Butter.png", width = 8, height = 6, dpi = 300)
+```
+
+
+
+```{r}
+# Two-Way ANOVA for Brot and Butter
+brot_butter_two_way_anova <- aov(Ameisen ~ Brot * Butter, data = sandwich)
+summary(brot_butter_two_way_anova)
+
+```
+
+
+```{r}
+ggplot(sandwich, aes(x = Brot, y = Ameisen, color = Butter, group = Butter)) +
+  stat_summary(fun = mean, geom = "line", linewidth = 1.1) +
+  stat_summary(fun = mean, geom = "point", size = 3) +
+  scale_color_manual(values = c("nein" = "steelblue", "ja" = "red2"), name = "Butter") +
+  labs(
+    title = "Interaction Plot: Bread Type (Brot) × Butter",
+    x = "Bread Type (Brot)",
+    y = "Mean Number of Ants"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    axis.text = element_text(face = "bold"),
+    legend.position = "top"
+  )
+ggsave("Interaction Plot Bread Type (Brot)_Butter.png", width = 8, height = 6, dpi = 300)
+
+```
+
